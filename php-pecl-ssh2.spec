@@ -1,7 +1,9 @@
+# centos/sclo spec file for php-pecl-ssh2, from:
+#
 # remirepo spec file for php-pecl-ssh2
 # with SCL compatibility
 #
-# Copyright (c) 2011-2017 Remi Collet
+# Copyright (c) 2011-2018 Remi Collet
 #
 # Fedora spec file for php-pecl-ssh2
 #
@@ -11,28 +13,21 @@
 #
 %if 0%{?scl:1}
 %global sub_prefix %{scl_prefix}
+%if "%{scl}" == "rh-php70"
+%global sub_prefix sclo-php70-
+%endif
+%if "%{scl}" == "rh-php71"
+%global sub_prefix sclo-php71-
+%endif
 %scl_package       php-pecl-ssh2
 %endif
 
-# See https://github.com/php/pecl-networking-ssh2/commits/master
-%global gh_commit  50d97a52c39166d59e59222a20e841f3f3ce594d
-%global gh_short   %(c=%{gh_commit}; echo ${c:0:7})
-#global gh_date    20160113
-%global gh_owner   php
-%global gh_project pecl-networking-ssh2
-%global with_zts   0%{!?_without_zts:%{?__ztsphp:1}}
 %global pecl_name  ssh2
 %global ini_name   40-%{pecl_name}.ini
 
 Name:           %{?sub_prefix}php-pecl-ssh2
 Version:        1.1.2
-%if 0%{?gh_date}
-Release:        0.3.%{gh_date}git%{gh_short}%{?dist}%{!?scl:%{!?nophptag:%(%{__php} -r 'echo ".".PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')}}
-Source0:        https://github.com/%{gh_owner}/%{gh_project}/archive/%{gh_commit}/%{gh_project}-%{version}%{?prever}-%{gh_short}.tar.gz
-%else
-Release:        1%{?dist}%{!?scl:%{!?nophptag:%(%{__php} -r 'echo ".".PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')}}
-Source0:        http://pecl.php.net/get/%{pecl_name}-%{version}.tgz
-%endif
+Release:        1%{?dist}
 Summary:        Bindings for the libssh2 library
 
 %global buildver %(pkg-config --silence-errors --modversion libssh2  2>/dev/null || echo 65536)
@@ -40,6 +35,7 @@ Summary:        Bindings for the libssh2 library
 License:        PHP
 Group:          Development/Languages
 URL:            http://pecl.php.net/package/%{pecl_name}
+Source0:        http://pecl.php.net/get/%{pecl_name}-%{version}.tgz
 
 BuildRequires:  libssh2-devel >= 1.2
 BuildRequires:  %{?scl_prefix}php-devel > 7
@@ -48,7 +44,6 @@ BuildRequires:  %{?scl_prefix}php-pear
 Requires:       %{?scl_prefix}php(zend-abi) = %{php_zend_api}
 Requires:       %{?scl_prefix}php(api) = %{php_core_api}
 Requires:       libssh2%{?_isa}  >= %{buildver}
-%{?_sclreq:Requires: %{?scl_prefix}runtime%{?_sclreq}%{?_isa}}
 
 Provides:       %{?scl_prefix}php-%{pecl_name} = %{version}
 Provides:       %{?scl_prefix}php-%{pecl_name}%{?_isa} = %{version}
@@ -57,28 +52,6 @@ Provides:       %{?scl_prefix}php-pecl(%{pecl_name})%{?_isa} = %{version}
 %if "%{?scl_prefix}" != "%{?sub_prefix}"
 Provides:       %{?scl_prefix}php-pecl-%{pecl_name}          = %{version}-%{release}
 Provides:       %{?scl_prefix}php-pecl-%{pecl_name}%{?_isa}  = %{version}-%{release}
-%endif
-
-%if "%{?vendor}" == "Remi Collet" && 0%{!?scl:1} && 0%{?rhel}
-# Other third party repo stuff
-Obsoletes:      php53-pecl-%{pecl_name} <= %{version}
-Obsoletes:     php53u-pecl-%{pecl_name} <= %{version}
-Obsoletes:      php54-pecl-%{pecl_name} <= %{version}
-Obsoletes:     php54w-pecl-%{pecl_name} <= %{version}
-Obsoletes:     php55u-pecl-%{pecl_name} <= %{version}
-Obsoletes:     php55w-pecl-%{pecl_name} <= %{version}
-Obsoletes:     php56u-pecl-%{pecl_name} <= %{version}
-Obsoletes:     php56w-pecl-%{pecl_name} <= %{version}
-Obsoletes:     php70u-pecl-%{pecl_name} <= %{version}
-Obsoletes:     php70w-pecl-%{pecl_name} <= %{version}
-%if "%{php_version}" > "7.1"
-Obsoletes:     php71u-pecl-%{pecl_name} <= %{version}
-Obsoletes:     php71w-pecl-%{pecl_name} <= %{version}
-%endif
-%if "%{php_version}" > "7.2"
-Obsoletes:     php72u-pecl-%{pecl_name} <= %{version}
-Obsoletes:     php72w-pecl-%{pecl_name} <= %{version}
-%endif
 %endif
 
 %if 0%{?fedora} < 20 && 0%{?rhel} < 7
@@ -95,23 +68,10 @@ a secure cryptographic transport.
 
 Documentation: http://php.net/ssh2
 
-Package built for PHP %(%{__php} -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')%{?scl: as Software Collection (%{scl} by %{?scl_vendor}%{!?scl_vendor:rh})}.
-
 
 %prep
 %setup -c -q
-%if 0%{?gh_date}
-mv %{gh_project}-%{gh_commit} NTS
-%{__php} -r '
-  $pkg = simplexml_load_file("NTS/package.xml");
-  $pkg->date = substr("%{gh_date}",0,4)."-".substr("%{gh_date}",4,2)."-".substr("%{gh_date}",6,2);
-  $pkg->version->release = "%{version}dev";
-  $pkg->stability->release = "devel";
-  $pkg->asXML("package.xml");
-'
-%else
 mv %{pecl_name}-%{version} NTS
-%endif
 
 # Don't install/register tests
 sed -e 's/role="test"/role="src"/' \
@@ -132,31 +92,15 @@ cat > %{ini_name} << 'EOF'
 extension=%{pecl_name}.so
 EOF
 
-%if %{with_zts}
-: Duplicate source tree for NTS / ZTS build
-cp -pr NTS ZTS
-%endif
-
 
 %build
-%{?dtsenable}
-
 cd NTS
 %{_bindir}/phpize
 %configure  --with-php-config=%{_bindir}/php-config
 make %{?_smp_mflags}
 
-%if %{with_zts}
-cd ../ZTS
-%{_bindir}/zts-phpize
-%configure  --with-php-config=%{_bindir}/zts-php-config
-make %{?_smp_mflags}
-%endif
-
 
 %install
-%{?dtsenable}
-
 make -C NTS install INSTALL_ROOT=%{buildroot}
 
 # Install XML package description
@@ -164,11 +108,6 @@ install -Dpm 644 package.xml %{buildroot}%{pecl_xmldir}/%{name}.xml
 
 # install config file
 install -Dpm644 %{ini_name} %{buildroot}%{php_inidir}/%{ini_name}
-
-%if %{with_zts}
-make -C ZTS install INSTALL_ROOT=%{buildroot}
-install -Dpm644 %{ini_name} %{buildroot}%{php_ztsinidir}/%{ini_name}
-%endif
 
 # Documentation
 for i in $(grep 'role="doc"' package.xml | sed -e 's/^.*name="//;s/".*$//')
@@ -184,16 +123,7 @@ done
     --define extension=%{pecl_name}.so \
     --modules | grep %{pecl_name}
 
-%if %{with_zts}
-: Minimal load test for ZTS extension
-%{__ztsphp} --no-php-ini \
-    --define extension_dir=%{buildroot}%{php_ztsextdir} \
-    --define extension=%{pecl_name}.so \
-    --modules | grep %{pecl_name}
-%endif
 
-
-%if 0%{?fedora} < 24
 # when pear installed alone, after us
 %triggerin -- %{?scl_prefix}php-pear
 if [ -x %{__pecl} ] ; then
@@ -202,9 +132,6 @@ fi
 
 # posttrans as pear can be installed after us
 %posttrans
-%if 0%{?gh_date}
-echo -e "\n** %{name} is an experimental package, built from a development sources snapshot **\n"
-%endif
 if [ -x %{__pecl} ] ; then
     %{pecl_install} %{pecl_xmldir}/%{name}.xml >/dev/null || :
 fi
@@ -213,7 +140,6 @@ fi
 if [ $1 -eq 0 -a -x %{__pecl} ] ; then
     %{pecl_uninstall} %{pecl_name} >/dev/null || :
 fi
-%endif
 
 
 %files
@@ -224,13 +150,11 @@ fi
 %config(noreplace) %{php_inidir}/%{ini_name}
 %{php_extdir}/%{pecl_name}.so
 
-%if %{with_zts}
-%config(noreplace) %{php_ztsinidir}/%{ini_name}
-%{php_ztsextdir}/%{pecl_name}.so
-%endif
-
 
 %changelog
+* Fri Jan 19 2018 Remi Collet <remi@remirepo.net> - 1.1.2-1
+- cleanup for centos/sclo
+
 * Tue Aug  1 2017 Remi Collet <remi@remirepo.net> - 1.1.2-1
 - Update to 1.1.2 (alpha, no change)
 
